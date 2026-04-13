@@ -53,7 +53,32 @@ class SparkManager:
 
         return SparkManager._spark
     
-        
+def register_udf(
+    spark: SparkSession,
+    udf_name: str = "bdf_voltage_simpleapi_v2",
+    udf_class: str = "mx.com.gsalinas.bdf.voltage.genericudf.simpleapi.BDF_VOLTAGE_SIMPLEAPI",
+    jar_path: str ="BDF_HiveVoltageFunction-assembly-2.0.jar"
+) -> None:
+    """
+    Register a temporary UDF in the Spark session.
+    
+    Parameters
+    ----------
+    spark : SparkSession
+        The Spark session where the UDF will be registered.
+    udf_name : str
+        The name of the UDF to register.
+    udf_class : str
+        The class path of the UDF implementation.
+    """
+    spark.sql(
+        f"""
+        CREATE TEMPORARY FUNCTION {udf_name} AS 
+        '{udf_class}' USING JAR '{jar_path}'
+        """
+    )
+
+
 def save_table(table: DataFrame, name: str) -> None:
     """
     Save a DataFrame as a Hive table with configurable mode and partitions.
@@ -65,8 +90,10 @@ def save_table(table: DataFrame, name: str) -> None:
     name : str
         Name of the Hive table.
     """
+    print("- [SAVE] Saving DataFrame...")
     writer = table.write.mode("overwrite").option(
         "partitionOverwriteMode", "dynamic"
     )
     writer.saveAsTable(name)
-    print(f"Table saved as:\n   {name}")
+    print("- [SAVE] Table saved as:")
+    print(f"         {name}")

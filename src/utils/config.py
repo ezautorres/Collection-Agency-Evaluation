@@ -25,6 +25,13 @@ def load_params() -> Dict[str, Any]:
     """
     with open ("../config/params.json", "r") as f:
         return load(f)
+    
+def load_contact_codes() -> Dict:
+    """
+    Load contact codes from a JSON configuration file.
+    """
+    with open ("../config/contact_codes.json", "r") as f:
+        return load(f)
 
 class LoggerFactory:
 
