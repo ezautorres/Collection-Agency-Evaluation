@@ -21,148 +21,20 @@ from pyspark.sql import (
 )
 from typing import List
 from .dataset_utils import assign_contact_type
+from .collection_agency import create_agency_base
+from .historical_features import build_agency_history
 
-"""
-    threphonorarios = (
-        spark.table("rd_baz_bdclientes.rd_threphonorarios")
-        .select(
-            "fianio",
-            "fisemana",
-            "fipais",
-            "ficanal", # key
-            "fisucursal",
-            "fifolio",
-            "fideptoid", # gerencia
-            "fidespid",
-            "fitipodepto", # key: tipo segmento
-            "fnrecupcapital",
-            "fnrecupmoratorios",
-            "fiporcentajecomision",
-            "fccomisiontotalcliente",
-            "fcplan",
-            "fdfechagestion",
-            "fctipocartera",
-            "fcproducto",
-            "fccampania",
-            "figestor",
-            "fcempnum",
-            "fisematrasomax",
-            "fiestrategia",
-        )
-    )
-
-    tacuabonado = (
-        spark.table("rd_baz_bdclientes.rd_tacuabonado")
-        .select(
-            "fianio",
-            "fisemana",
-            "fipais",
-            "ficanal", # key
-            "fisucursal",
-            "fifolio",
-            "fdfechabono",
-            "fisematrasomax",
-            "fitipodepto", # key: tipo segmento
-            "fideptoid", # gerencia
-            "fidespid",
-            "ficlasifcuenta",
-            "fidiasatrasoabono",
-            "fnmontoabono",
-            "fncargoautomatico",
-            "fitipocartera",
-            "fiindjudextraju",
-            "fiorigencartera",
-            "fnsaldocte",
-            "fnsaldoatrasadocte",
-            "fnmoratorioscte",
-            "figestor",
-        )
-    )
-
-    tahonorariosdes =(
-        spark.table("rd_baz_bdclientes.rd_tahonorariosdes")
-        .select(
-            "fianio",
-            "fisemana",
-            "fitipodepto", # key: tipo de segmento
-            "fncomision",
-            "fnporcentajecom",
-            "fngestionesinv", # id numero de gestiones
-            "fncobdespacho", # cobro realizado
-            "fniva",
-            "fnsubtotal",
-            "fnretencioniva",
-            "fnretencionisr",
-            "fntotalapagar",
-            "fcfopresupuesto",
-            "fiiddespacho",
-        )
-    )
-
-    taresultgestor = (
-        spark.table("rd_baz_bdclientes.rd_taresultgestor")
-        .select(
-            "fianio",
-            "fisemana",
-            "fitipodepto",
-            "fideptoid",
-            "fidespid",
-            "figestor",
-            "fitipocartera",
-            "fitotalclientes",
-            "fnsaldo",
-            "fnmoratorios",
-            "fnsaldoatrasado",
-            "fncobranzaefectivo",
-            "fncobranzarmd",
-            "fncargosaut",
-            "fntotal",
-            "finumabonosefectivo",
-            "finumcargosaut",
-            "fnmontocargoautomatico",
-            "fnmontocaptacion",
-        )
-    )
-"""
-
-def get_dataset(spark: SparkSession):
-    tasclsegmendesp = (
-        spark.table("rd_baz_bdclientes.rd_tasclsegmendesp")
-        .select(
-            "fidespid", # key
-            "fitipodepto", # key: tipo de segmento
-            "estatus", # 0,1
-            "fncapacidadideal", # de gestores
-            "fncapacidadmax",
-            "fncapacidadmin",
-            "fnclientesactual",
-        )
-    )
-
-    tascldespacho = (
-        spark.table("rd_baz_bdclientes.rd_tascldespacho")
-        .select(
-            "fidespid", # key
-            "fcnombrerazonsocial",
-            "fccodpostal",
-            "fctelefono1",
-            "fcempresascobext", # empresas registradas al despacho
-            "fdfechaalta", #ms
-            "fdfechabaja", #ms
-            "fitiempomanejocobza",
-            "fihabilitadointerf",
-            "fdcontrato",
-            "fnimportepagare",
-            "fntipodespacho",
-            "fitipogestion",
-        )
-    )
-
-    df_final = (
-        tasclsegmendesp
-        .join(tascldespacho, on="fidespid", how="left")
-    )
-
+def get_dataset(
+    spark: SparkSession,
+    week: int,
+    start_week: int,
+    segm_legal: List[int],  
+) -> DataFrame:
+    
+    despachos = create_agency_base(spark, segm_legal)
+    historial = build_agency_history(spark, week, start_week, segm_legal)
+    df_final = despachos
+    
     return df_final
 
 def metricas(
