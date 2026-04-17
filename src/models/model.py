@@ -20,7 +20,6 @@ features = [
     "fitipogestion",
     "fitiempomanejocobza",
     "fihabilitadointerf",
-    "fnimportepagare",
     "has_empresas_cobext",
     "has_phone",
     "has_cp",
@@ -32,20 +31,17 @@ features = [
     "rango_capacidad",
     "rango_capacidad_sobre_ideal",
     "rango_capacidad_sobre_max",
-    "importe_por_cliente",
-    "importe_por_capacidad_ideal",
-    "importe_por_capacidad_max",
     "telefono_valido_10_12_flag",
     "cp_5digitos_flag",
     "clientes_x_antiguedad",
-    "importe_x_antiguedad",
     "info_basica_score"
 ]
 
 
 def primer_modelo(df_model: DataFrame):
-
+    print("Entran a modelo: ", df_model.count())
     df_model = df_model.dropna()
+    print("Entran a modelo: ", df_model.count())
     df_model = df_model.filter(
         (F.col("fnclientesactual") >= 10) & 
         (F.col("fnclientesactual") <= 500000)
@@ -71,7 +67,7 @@ def primer_modelo(df_model: DataFrame):
     df_scaled = scaler_model.transform(df_vec)
 
     kmeans = KMeans(
-        k=5,
+        k=3,
         seed=42,
         featuresCol="features_scaled",
         predictionCol="cluster"
@@ -96,8 +92,6 @@ def check_results(df_clustered: DataFrame):
             F.avg("fncapacidadideal").cast("int").alias("capacidad_ideal"),
             F.avg("fncapacidadmin").cast("int").alias("capacidad_admin"),
             F.avg("fitiempomanejocobza").alias("tiempo_manejo_cobza"),
-            #F.avg("importe_por_cliente").alias("importe_por_cliente"),
-            #F.avg("importe_por_capacidad_ideal").alias("importe_por gestor"),
             F.avg("antiguedad_alta_dias").cast("int").alias("antiguedad_dias"),
             F.avg("clientes_x_gestor").alias("clientes_x_gestor"),
             F.max("fntipodespacho").alias("tipo_despacho_max"),

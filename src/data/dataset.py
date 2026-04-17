@@ -22,6 +22,14 @@ from pyspark.sql import (
 from typing import List
 from .dataset_utils import assign_contact_type
 from .collection_agency import create_agency_base
+from .cleaning import (
+    drop_mostly_null_rows,
+    fix_empresascobext_nulls,
+    fix_status_date_inconsistencies,
+    clean_capacity_columns,
+    enforce_capacity_bounds,
+)
+from .preprocessing import impute_gestor_capacity_fields
 from .historical_features import build_agency_history
 
 def get_dataset(
@@ -31,11 +39,18 @@ def get_dataset(
     segm_legal: List[int],  
 ) -> DataFrame:
     
-    despachos = create_agency_base(spark, segm_legal)
-    historial = build_agency_history(spark, week, start_week, segm_legal)
-    df_final = despachos
+    agency_base = create_agency_base(spark, segm_legal)
+    agency_base = drop_mostly_null_rows(agency_base)
+    agency_base = fix_empresascobext_nulls(agency_base)
+    agency_base = fix_status_date_inconsistencies(agency_base)
+    agency_base = clean_capacity_columns(agency_base)
     
-    return df_final
+    agency_base = impute_gestor_capacity_fields(agency_base)
+    agency_base = enforce_capacity_bounds(agency_base)
+    #historial = build_agency_history(spark, week, start_week, segm_legal)
+    
+    return agency_base
+
 
 def metricas(
     spark: SparkSession,

@@ -9,6 +9,7 @@ Date: April 2026.
 import time
 from pyspark.sql import (
     SparkSession,
+    functions as F,
 )
 from utils.spark_utils import (
     SparkManager,
@@ -75,21 +76,23 @@ def main(
             start_week=start_week,
             segm_legal=segm_legal,
         )
-        print(df.count())
+        #df = df.where(F.col("estatus")==1)
+        #print(df.count())
+        save_table(df, tbl_out + "_dataset")
         logger.info("Dataset loaded successfully.")
         #check_abt(df, "check_data.csv")
 
         # Applying model.
         logger.info("Running model.")
-        df = primer_modelo(df)
-        print(df.count())
-        df2 = check_results(df)
-        save_csv(df2, "clusters.csv")
+        #df = primer_modelo(df)
+        #print(df.count())
+        #df2 = check_results(df)
+        #save_csv(df2, "clusters.csv")
 
 
         # Last processing.
         logger.info("Processing final information.")
-        save_table(df, tbl_out)
+        #save_table(df, tbl_out)
 
         # Log completion.
         logger.info("Process completed successfully.")
