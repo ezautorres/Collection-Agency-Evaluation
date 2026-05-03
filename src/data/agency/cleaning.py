@@ -3,27 +3,32 @@ Author: Ezau Faridh Torres Torres.
 Date: April 2026.
 """
 # Necessary imports.
-import os
 import time
-from pyspark.sql import (
-    SparkSession,
-    DataFrame,
-    functions as F,
-    Window,
-)
-from typing import List
+from pyspark.sql import DataFrame, functions as F
 from functools import reduce
 from pyspark.sql.types import NumericType
 
-def drop_mostly_null_rows(df: DataFrame) -> DataFrame:
+def clean_agency_base(df: DataFrame) -> DataFrame:
+    """
+    Clean the agency base DataFrame.
+    """
+    df = _drop_mostly_null_rows(df)
+    df = _fix_empresascobext_nulls(df)
+    df = _fix_status_date_inconsistencies(df)
+    df = _clean_capacity_manager_columns(df)
+    
+    return df
+
+
+def _drop_mostly_null_rows(df: DataFrame) -> DataFrame:
     """
     Drop rows that have mostly null values.
     """
-    # Calculate the threshold for dropping rows.
+    # Threshold.
     n_cols = len(df.columns)
     threshold = n_cols / 2 + 1
 
-    # Create a list of expressions to count null values.
+    # List of expressions to count null values.
     exprs = []
     for field in df.schema.fields:
         c = F.col(field.name)
@@ -39,12 +44,14 @@ def drop_mostly_null_rows(df: DataFrame) -> DataFrame:
     
     return df.where(empty_count <= threshold)
 
-def fix_empresascobext_nulls(df: DataFrame) -> DataFrame:
+
+def _fix_empresascobext_nulls(df: DataFrame) -> DataFrame:
     """
     Fix null values in the fcempresascobext column.
     """
-    df = (
-        df.withColumn(
+    return (
+        df
+        .withColumn(
             "fcempresascobext",
             F.when(
                 F.col("fcempresascobext").isNull(),
@@ -52,13 +59,13 @@ def fix_empresascobext_nulls(df: DataFrame) -> DataFrame:
             ).otherwise(F.col("fcempresascobext"))
         )
     )
-    return df
 
-def fix_status_date_inconsistencies(df: DataFrame) -> DataFrame:
+
+def _fix_status_date_inconsistencies(df: DataFrame) -> DataFrame:
     """
     Fix inconsistencies in the status and date columns.
     """
-    df = (
+    return (
         df
         .withColumn(
             "fdfechabaja",
@@ -71,15 +78,14 @@ def fix_status_date_inconsistencies(df: DataFrame) -> DataFrame:
             ).otherwise(F.col("fdfechabaja"))
         )
     )
-    
-    return df
 
-def clean_capacity_columns(df: DataFrame) -> DataFrame:
+
+def _clean_capacity_manager_columns(df: DataFrame) -> DataFrame:
     """
-    Clean the capacity columns by replacing 0 values with null and
+    Clean the capacity manager columns by replacing 0 values with null and
     removing outliers.
     """
-    cols = ["fncapacidadideal", "fncapacidadmin", "fncapacidadmax"]
+    cols = ["ideal_cap_manager", "min_cap_manager", "max_cap_manager"]
 
     # Calculate percentiles.
     quantiles = df.approxQuantile(cols, [0.95], 0.01)
@@ -100,19 +106,4 @@ def clean_capacity_columns(df: DataFrame) -> DataFrame:
             )
         )
 
-    return df
-
-
-def enforce_capacity_bounds(df: DataFrame) -> DataFrame:
-    df = (
-        df
-        .withColumn(
-            "fncapacidadmin",
-            F.least(F.col("fncapacidadmin"), F.col("fncapacidadideal"))
-        )
-        .withColumn(
-            "fncapacidadmax",
-            F.greatest(F.col("fncapacidadmax"), F.col("fncapacidadideal"))
-        )
-    )
     return df
